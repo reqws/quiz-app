@@ -1,15 +1,13 @@
-"use client"; // Required in Next.js 13 app directory to enable React client-side features like useState
+"use client";
 
 import { useState } from "react";
 
-// Define a TypeScript type for each quiz question
 type Question = {
-  question: string;      // The text of the question
-  options: string[];     // Array of possible answers
-  answer: string;        // Correct answer
+  question: string;
+  options: string[];
+  answer: string;
 };
 
-// Array of quiz questions
 const questions: Question[] = [
   {
     question: "What is the capital of France?",
@@ -39,75 +37,111 @@ const questions: Question[] = [
 ];
 
 export default function Home() {
-  // State to track the index of the current question
-  const [currentQuestion, setCurrentQuestion] = useState<number>(0);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [score, setScore] = useState(0);
+  const [showScore, setShowScore] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [isAnswered, setIsAnswered] = useState(false);
 
-  // State to track the user's score
-  const [score, setScore] = useState<number>(0);
+  const handleAnswer = (option: string) => {
+    if (isAnswered) return;
+    setSelectedOption(option);
+    setIsAnswered(true);
 
-  // State to determine if the final score should be shown
-  const [showScore, setShowScore] = useState<boolean>(false);
-
-  // Function to handle when a user selects an answer
-  const handleAnswer = (selected: string) => {
-    // Increment score if the selected answer is correct
-    if (selected === questions[currentQuestion].answer) {
-      setScore(score + 1);
+    if (option === questions[currentQuestion].answer) {
+      setScore((prev) => prev + 1);
     }
 
-    const nextQuestion = currentQuestion + 1;
-
-    // If there are more questions, go to the next question
-    if (nextQuestion < questions.length) {
-      setCurrentQuestion(nextQuestion);
-    } else {
-      // Otherwise, show the final score
-      setShowScore(true);
-    }
+    // Delay before moving to next question
+    setTimeout(() => {
+      const next = currentQuestion + 1;
+      if (next < questions.length) {
+        setCurrentQuestion(next);
+        setSelectedOption(null);
+        setIsAnswered(false);
+      } else {
+        setShowScore(true);
+      }
+    }, 1000);
   };
 
-  // Function to reset the quiz to initial state
   const resetQuiz = () => {
     setCurrentQuestion(0);
     setScore(0);
     setShowScore(false);
+    setSelectedOption(null);
+    setIsAnswered(false);
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex w-full max-w-3xl flex-col items-center justify-center gap-8 bg-white dark:bg-black p-8 rounded-lg shadow-lg">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-100 via-white to-purple-100 dark:from-zinc-900 dark:via-black dark:to-zinc-800 transition-colors">
+      <main className="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-6 transition-all">
         {showScore ? (
-          // Render the final score when quiz is completed
-          <div className="text-center flex flex-col items-center gap-4">
-            <h1 className="text-3xl font-bold text-black dark:text-zinc-50">
-              Your Score: {score} / {questions.length}
+          <div className="text-center space-y-6 animate-fadeIn">
+            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-600">
+              Final Score
             </h1>
+            <p className="text-2xl text-gray-800 dark:text-gray-200">
+              {score} / {questions.length}
+            </p>
             <button
-              onClick={resetQuiz} // Reset quiz on click
-              className="mt-4 rounded bg-green-500 py-2 px-6 text-white hover:bg-green-600"
+              onClick={resetQuiz}
+              className="mt-4 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 py-2 px-8 text-white font-semibold shadow-md hover:shadow-lg transition-all"
             >
-              Reset Quiz
+              Try Again
             </button>
           </div>
         ) : (
-          // Render the current question and options
-          <div className="flex flex-col items-center gap-6 w-full">
-            <h2 className="text-2xl font-semibold text-black dark:text-zinc-50">
-              {questions[currentQuestion].question} {/* Display current question */}
-            </h2>
-            <div className="flex flex-col gap-4 w-full">
-              {questions[currentQuestion].options.map((option) => (
-                <button
-                  key={option} // Key is required for lists in React
-                  onClick={() => handleAnswer(option)} // Handle answer selection
-                  className="w-full rounded bg-blue-500 py-2 px-4 text-white hover:bg-blue-600"
-                >
-                  {option} {/* Display each answer option */}
-                </button>
-              ))}
+          <div className="w-full space-y-6 animate-fadeIn">
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-3">
+              <div
+                className="bg-blue-500 h-3 rounded-full transition-all"
+                style={{
+                  width: `${((currentQuestion + 1) / questions.length) * 100}%`,
+                }}
+              ></div>
             </div>
-            <p className="text-gray-600 dark:text-gray-300">
-              Question {currentQuestion + 1} of {questions.length} {/* Show progress */}
+
+            <h2 className="text-2xl font-semibold text-center text-gray-900 dark:text-gray-100">
+              {questions[currentQuestion].question}
+            </h2>
+
+            <div className="flex flex-col gap-4">
+              {questions[currentQuestion].options.map((option) => {
+                const isCorrect = option === questions[currentQuestion].answer;
+                const isSelected = selectedOption === option;
+                let optionClass =
+                  "w-full rounded-lg border border-gray-300 dark:border-zinc-700 py-3 px-4 font-medium text-gray-700 dark:text-gray-200 transition-all transform hover:scale-[1.02]";
+
+                if (isAnswered) {
+                  if (isSelected && isCorrect)
+                    optionClass += " bg-green-500 text-white border-green-600";
+                  else if (isSelected && !isCorrect)
+                    optionClass += " bg-red-500 text-white border-red-600";
+                  else if (isCorrect)
+                    optionClass += " bg-green-100 dark:bg-green-700/40";
+                  else optionClass += " opacity-70";
+                } else {
+                  optionClass +=
+                    " hover:bg-blue-100 dark:hover:bg-blue-900/40 cursor-pointer";
+                }
+
+                return (
+                  <button
+                    key={option}
+                    onClick={() => handleAnswer(option)}
+                    className={optionClass}
+                    disabled={isAnswered}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+              Question {currentQuestion + 1} of {questions.length}
             </p>
           </div>
         )}
